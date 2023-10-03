@@ -1,6 +1,6 @@
 #include "config.h"
 
-#if defined(ST7735R) || defined(ST7735S) || defined(ST7789)
+#if defined(ST7735R) || defined(ST7735S) || defined(ST7789) || defined(ST7796S)
 
 #include "spi.h"
 
@@ -62,6 +62,11 @@ void InitST7735R()
     madctl ^= MADCTL_ROTATE_180_DEGREES;
 #endif
 
+#if defined(ST7796S)
+	// Fixes display mirroring
+    madctl ^= MADCTL_COLUMN_ADDRESS_ORDER_SWAP;
+#endif
+
 #ifdef DISPLAY_ROTATE_180_DEGREES
     madctl ^= MADCTL_ROTATE_180_DEGREES;
 #endif
@@ -96,9 +101,15 @@ void InitST7735R()
 #endif
 
     // TODO: The 0xB1 command is not Frame Rate Control for ST7789VW, 0xB3 is (add support to it)
-#ifndef ST7789VW
+#if !defined(ST7789VW) && !defined(ST7796S)
     // Frame rate = 850000 / [ (2*RTNA+40) * (162 + FPA+BPA)]
     SPI_TRANSFER(0xB1/*FRMCTR1:Frame Rate Control*/, /*RTNA=*/6, /*FPA=*/1, /*BPA=*/1); // This should set frame rate = 99.67 Hz
+#endif
+
+#ifdef ST7796S
+	// The ST7796S does not work with the frame rate control from above for other ST77* displays. This value taken from MHS-4.0" 
+	// device tree files, meaning unknown.
+    SPI_TRANSFER(0xB1, 0x80, 0x10);
 #endif
 
     SPI_TRANSFER(/*Display ON*/0x29);
